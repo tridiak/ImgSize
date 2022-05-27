@@ -249,32 +249,57 @@ ImgSize PngImageSize(const char* file) {
 		throw std::invalid_argument("Not a (valid) png file");
 	}
 	
-	uint8_t buffer[24]; bzero(buffer, 24);
+	uint8_t buffer[128]; bzero(buffer, 32);
 	
 	std::ifstream ins(file, std::ios_base::in | std::ios_base::binary);
 	ins.exceptions(std::ifstream::failbit);
 	
+	const char* ihdrChunk = "IHDR";
+	
 	uint32_t w = 0;
 	uint32_t h = 0;
+	size_t pos = 8;
+	size_t chunkID = 0;
+	bool ihdrFound = false;
 	try {
-		ins.read((char*)buffer, 24);
-		ins.close();
-		
+		ins.read((char*)buffer, 8);
 		if (memcmp(buffer, pngMagic, 8) != 0) {
 			throw std::invalid_argument("Not a valid png file");
 		}
 		
-		int w1 = buffer[16];
-		int w2 = buffer[17];
-		int w3 = buffer[18];
-		int w4 = buffer[19];
+		while (true) {
+			ins.seekg(pos, ins.beg);
+			ins.read((char*)buffer, 32);
+			chunkID = pos + 4;
+			if (memcmp(ihdrChunk, &buffer[4], 4) != 0) {
+				uint32_t chunkSize = ((uint32_t)buffer[0] << 24) | ((uint32_t)buffer[1] << 16) | ((uint32_t)buffer[2] << 8) | ((uint32_t)buffer[3]);
+				pos += 12 + chunkSize;
+			}
+			else {
+				break;
+			}
+			if (pos >= info.st_size) {
+				throw std::invalid_argument("Not a valid png file");
+			}
+		}
+		std::streamsize ct = ins.gcount();
+		ins.close();
+		
+		//----------
+		
+		
+		
+		int w1 = buffer[8];
+		int w2 = buffer[9];
+		int w3 = buffer[10];
+		int w4 = buffer[11];
 		
 		w = (w1 << 24) | (w2 << 16) | (w3 << 8) | w4;
 		
-		int h1 = buffer[20];
-		int h2 = buffer[21];
-		int h3 = buffer[22];
-		int h4 = buffer[23];
+		int h1 = buffer[12];
+		int h2 = buffer[13];
+		int h3 = buffer[14];
+		int h4 = buffer[15];
 		
 		h = (h1 << 24) | (h2 << 16) | (h3 << 8) | h4;
 	}
