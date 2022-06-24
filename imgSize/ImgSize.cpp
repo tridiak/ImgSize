@@ -62,7 +62,13 @@ int FileType(const char* file) {
 extern "C" int GetImageSizeC(const char* file, ImgSizeList* islPtr) {
 	if (!file) { return -1; }
 	
-	int res = FileType(file);
+	int res = 0;
+	try {
+		res = FileType(file);
+	}
+	catch (...) {
+		return -1;
+	}
 	if (res < 0) { return -1; }
 	if (!islPtr) { return res; }
 	
